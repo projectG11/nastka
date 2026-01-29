@@ -14,8 +14,8 @@
             left: 50px;
             font-size: 60px;
             z-index: 2;
-            /* ODWRÓCENIE KONIA */
-            transform: scaleX(-1);
+            transform: scaleX(-1); /* Odwrócenie konia */
+            will-change: transform;
         }
 
         .obstacle {
@@ -31,11 +31,24 @@
         }
 
         #ui { position: absolute; top: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px #000; pointer-events: none; }
+        
         #msg {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             text-align: center; display: none; background: white; padding: 30px; border-radius: 20px; z-index: 10;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
         }
-        button { padding: 10px 20px; font-size: 20px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 5px; }
+        
+        /* Styl przycisku - poprawiony pod telefon */
+        .restart-btn { 
+            padding: 15px 30px; 
+            font-size: 20px; 
+            cursor: pointer; 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            border-radius: 10px;
+            -webkit-appearance: none; /* Usuwa systemowy styl iOS */
+        }
     </style>
 </head>
 <body>
@@ -49,7 +62,7 @@
     <div id="msg">
         <h1>Koniec gry!</h1>
         <p id="final-score" style="font-size: 20px;"></p>
-        <button onclick="location.reload()">Zagraj jeszcze raz</button>
+        <button class="restart-btn" id="restartBtn">Zagraj jeszcze raz</button>
     </div>
 </div>
 
@@ -59,15 +72,32 @@
     const scoreElement = document.getElementById('score');
     const speedElement = document.getElementById('speed');
     const msg = document.getElementById('msg');
+    const restartBtn = document.getElementById('restartBtn');
 
     let isJumping = false;
     let score = 0;
     let gameActive = true;
     let gameSpeed = 7;
-    let spawnRate = 1700;
+    let spawnRate = 2500; // ZWIĘKSZONE (rzadsze przeszkody na start)
 
-    window.addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) jump(); });
-    window.addEventListener('touchstart', (e) => { if (gameActive) jump(); e.preventDefault(); }, {passive: false});
+    // STEROWANIE
+    window.addEventListener('keydown', (e) => { 
+        if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) jump(); 
+    });
+
+    // Obsługa dotyku z poprawką na przycisk restartu
+    window.addEventListener('touchstart', (e) => { 
+        if (gameActive) {
+            jump(); 
+            // Zapobiega zoomowaniu, ale nie blokuje elementów UI jeśli gra jest zatrzymana
+            if (e.target.tagName !== 'BUTTON') e.preventDefault(); 
+        }
+    }, {passive: false});
+
+    // Obsługa przycisku restart (oddzielnie, by działało na telefonie)
+    restartBtn.addEventListener('click', () => {
+        location.reload();
+    });
 
     function jump() {
         if (isJumping) return;
@@ -96,6 +126,7 @@
 
     function createObstacle() {
         if (!gameActive) return;
+        
         const obstacle = document.createElement('div');
         obstacle.classList.add('obstacle');
         container.appendChild(obstacle);
@@ -103,12 +134,14 @@
         let obstacleRight = -60;
         let moveInterval = setInterval(() => {
             if (!gameActive) { clearInterval(moveInterval); return; }
+            
             obstacleRight += gameSpeed;
             obstacle.style.right = obstacleRight + 'px';
 
             let h = horse.getBoundingClientRect();
             let o = obstacle.getBoundingClientRect();
 
+            // Hitbox
             if (h.right - 20 > o.left && h.left + 20 < o.right && h.bottom - 10 > o.top) {
                 gameActive = false;
                 msg.style.display = 'block';
@@ -120,16 +153,22 @@
                 obstacle.remove();
                 score++;
                 scoreElement.innerText = `Punkty: ${score}`;
+                
+                // Trudność rośnie, ale przeszkody nie będą ekstremalnie gęsto
                 if (score % 5 === 0) {
-                    gameSpeed += 0.8;
-                    spawnRate = Math.max(800, spawnRate - 100);
+                    gameSpeed += 0.7;
+                    spawnRate = Math.max(1200, spawnRate - 150); 
                     speedElement.innerText = `Prędkość: ${(gameSpeed/7).toFixed(1)}x`;
                 }
             }
         }, 20);
-        setTimeout(createObstacle, Math.random() * (spawnRate/2) + (spawnRate/2));
+
+        // Losowy odstęp czasowy
+        let nextSpawn = Math.random() * 1000 + spawnRate;
+        setTimeout(createObstacle, nextSpawn);
     }
 
+    // Start opóźniony o sekundę
     setTimeout(createObstacle, 1000);
 </script>
 </body>
