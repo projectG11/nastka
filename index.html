@@ -3,89 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Skoki przez przeszkody - Wyzwanie</title>
+    <title>Skoki przez przeszkody</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #87CEEB;
-            touch-action: manipulation;
-        }
-        #game-container {
-            position: relative;
-            width: 100vw;
-            height: 100vh;
-            background: linear-gradient(to bottom, #87CEEB 70%, #2ecc71 70%);
-        }
+        body { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; background-color: #87CEEB; touch-action: manipulation; }
+        #game-container { position: relative; width: 100vw; height: 100vh; background: linear-gradient(to bottom, #87CEEB 70%, #2ecc71 70%); }
+        
         #horse {
             position: absolute;
             bottom: 30%;
             left: 50px;
             font-size: 60px;
             z-index: 2;
-            transition: transform 0.1s;
+            /* ODWRÓCENIE KONIA */
+            transform: scaleX(-1);
         }
+
         .obstacle {
             position: absolute;
             bottom: 30%;
             right: -60px;
-            width: 30px;
-            height: 50px;
-            background-color: #e67e22;
-            border: 4px solid #fff;
+            width: 35px;
+            height: 45px;
+            background-color: #f1c40f;
+            border: 4px solid #c0392b;
             border-bottom: none;
-            border-radius: 5px 5px 0 0;
             z-index: 1;
         }
-        #ui-layer {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-            pointer-events: none;
-        }
-        #score { font-size: 30px; font-weight: bold; }
-        #speed-lvl { font-size: 16px; opacity: 0.9; }
-        
+
+        #ui { position: absolute; top: 20px; left: 20px; color: white; text-shadow: 2px 2px 4px #000; pointer-events: none; }
         #msg {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-            display: none;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            z-index: 10;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; display: none; background: white; padding: 30px; border-radius: 20px; z-index: 10;
         }
-        button {
-            padding: 15px 30px;
-            font-size: 20px;
-            background: #27ae60;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-        }
+        button { padding: 10px 20px; font-size: 20px; cursor: pointer; background: #27ae60; color: white; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="ui-layer">
-        <div id="score">Punkty: 0</div>
-        <div id="speed-lvl">Prędkość: 1.0x</div>
+    <div id="ui">
+        <div id="score" style="font-size: 30px;">Punkty: 0</div>
+        <div id="speed">Prędkość: 1.0x</div>
     </div>
     <div id="horse">🐎</div>
     <div id="msg">
-        <h1>Koniec biegu!</h1>
-        <p id="final-score" style="font-size: 24px;"></p>
-        <button onclick="resetGame()">Spróbuj ponownie</button>
+        <h1>Koniec gry!</h1>
+        <p id="final-score" style="font-size: 20px;"></p>
+        <button onclick="location.reload()">Zagraj jeszcze raz</button>
     </div>
 </div>
 
@@ -93,126 +57,80 @@
     const horse = document.getElementById('horse');
     const container = document.getElementById('game-container');
     const scoreElement = document.getElementById('score');
-    const speedElement = document.getElementById('speed-lvl');
+    const speedElement = document.getElementById('speed');
     const msg = document.getElementById('msg');
-    const finalScoreElement = document.getElementById('final-score');
 
     let isJumping = false;
     let score = 0;
     let gameActive = true;
-    let horseBottom = 30;
-    
-    // Logika prędkości
-    let gameSpeed = 6; // Początkowa prędkość przesuwania
-    let spawnRate = 1800; // Czas w ms między przeszkodami
+    let gameSpeed = 7;
+    let spawnRate = 1700;
 
-    // Sterowanie (Klawiatura + Dotyk)
-    window.addEventListener('keydown', (e) => {
-        if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) jump();
-    });
-    window.addEventListener('touchstart', (e) => {
-        if (gameActive) jump();
-        e.preventDefault(); // Zapobiega zoomowaniu na telefonie
-    }, {passive: false});
+    window.addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'ArrowUp') && gameActive) jump(); });
+    window.addEventListener('touchstart', (e) => { if (gameActive) jump(); e.preventDefault(); }, {passive: false});
 
     function jump() {
         if (isJumping) return;
         isJumping = true;
-        
-        let velocity = 0;
         let jumpHeight = 0;
-        let maxJump = 180; // wysokość skoku w px
+        const maxJump = 160;
 
         let upInterval = setInterval(() => {
-            // Animacja w górę
             if (jumpHeight >= maxJump) {
                 clearInterval(upInterval);
                 let downInterval = setInterval(() => {
-                    // Animacja w dół
-                    jumpHeight -= 6;
-                    horse.style.transform = `translateY(-${jumpHeight}px)`;
+                    jumpHeight -= 7;
+                    horse.style.transform = `translateY(-${jumpHeight}px) scaleX(-1)`;
                     if (jumpHeight <= 0) {
                         clearInterval(downInterval);
                         isJumping = false;
-                        horse.style.transform = `translateY(0px)`;
+                        horse.style.transform = `translateY(0px) scaleX(-1)`;
                     }
-                }, 15);
+                }, 20);
             } else {
-                jumpHeight += 6;
-                horse.style.transform = `translateY(-${jumpHeight}px)`;
+                jumpHeight += 7;
+                horse.style.transform = `translateY(-${jumpHeight}px) scaleX(-1)`;
             }
-        }, 15);
+        }, 20);
     }
 
     function createObstacle() {
         if (!gameActive) return;
-
         const obstacle = document.createElement('div');
         obstacle.classList.add('obstacle');
         container.appendChild(obstacle);
 
         let obstacleRight = -60;
-
         let moveInterval = setInterval(() => {
-            if (!gameActive) {
-                clearInterval(moveInterval);
-                return;
-            }
-
+            if (!gameActive) { clearInterval(moveInterval); return; }
             obstacleRight += gameSpeed;
             obstacle.style.right = obstacleRight + 'px';
 
-            // Precyzyjna kolizja
-            let horseRect = horse.getBoundingClientRect();
-            let obsRect = obstacle.getBoundingClientRect();
+            let h = horse.getBoundingClientRect();
+            let o = obstacle.getBoundingClientRect();
 
-            // Margines błędu (hitbox) - odejmujemy 10px by gra była bardziej fair
-            if (
-                horseRect.right - 15 > obsRect.left &&
-                horseRect.left + 15 < obsRect.right &&
-                horseRect.bottom - 10 > obsRect.top
-            ) {
-                gameOver();
-                clearInterval(moveInterval);
+            if (h.right - 20 > o.left && h.left + 20 < o.right && h.bottom - 10 > o.top) {
+                gameActive = false;
+                msg.style.display = 'block';
+                document.getElementById('final-score').innerText = `Wynik: ${score}`;
             }
 
             if (obstacleRight > window.innerWidth) {
                 clearInterval(moveInterval);
                 obstacle.remove();
-                updateScore();
+                score++;
+                scoreElement.innerText = `Punkty: ${score}`;
+                if (score % 5 === 0) {
+                    gameSpeed += 0.8;
+                    spawnRate = Math.max(800, spawnRate - 100);
+                    speedElement.innerText = `Prędkość: ${(gameSpeed/7).toFixed(1)}x`;
+                }
             }
         }, 20);
-
-        // Planowanie kolejnej przeszkody z uwzględnieniem prędkości
-        let nextSpawn = Math.random() * (spawnRate / 2) + (spawnRate / 2);
-        setTimeout(createObstacle, nextSpawn);
+        setTimeout(createObstacle, Math.random() * (spawnRate/2) + (spawnRate/2));
     }
 
-    function updateScore() {
-        score++;
-        scoreElement.innerText = `Punkty: ${score}`;
-        
-        // Zwiększanie trudności co 5 punktów
-        if (score % 5 === 0) {
-            gameSpeed += 0.8;
-            spawnRate = Math.max(700, spawnRate - 100); // Nie mniej niż 0.7s
-            speedElement.innerText = `Prędkość: ${(gameSpeed/6).toFixed(1)}x`;
-        }
-    }
-
-    function gameOver() {
-        gameActive = false;
-        msg.style.display = 'block';
-        finalScoreElement.innerText = `Twój wynik: ${score}`;
-    }
-
-    function resetGame() {
-        location.reload();
-    }
-
-    // Start
     setTimeout(createObstacle, 1000);
 </script>
-
 </body>
 </html>
